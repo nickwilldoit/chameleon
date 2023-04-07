@@ -95,21 +95,30 @@
       const responses = [];
       const promptInputs = document.querySelectorAll(".prompt");
       const responseInputs = document.querySelectorAll(".response");
+      let messages = [];
       for (let i = 0; i < promptInputs.length; i++) {
         prompts.push(promptInputs[i].value);
         responses.push(responseInputs[i].value);
+        messages.push({"role": "user", "content": prompts[i]});
+        messages.push({"role": "assistant", "content": responses[i]});
       }
       const targetPrompt = document.querySelector("input[name=targetPrompt]").value;
 
-      // Construct the API request data
+      const systemMessage = `You are able to perfectly impersonate the writing style of anyone you've ever read, and you are able to write articles that are indistinguishable from those written by the original author. Write articles based on user input, and make sure to respond with the same style, tone, voice, vocabulary, attitude, and personality represented in your first responses. Make sure the articles you write are no longer than 1250 words each.`;
+
+      const userMessage = targetPrompt;
+
       const requestData = {
-        model: "text-davinci-002",
-        prompt: "System: " + responses.join(" ") + " User: " + prompts.join(" ") + " User: " + targetPrompt,
-        temperature: 0.5,
-        max_tokens: 1024,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
+        model: "gpt-3.5-turbo",
+        messages: [
+          {"role": "system", "content": systemMessage},
+          ...messages,
+          {"role": "user", "content": userMessage},
+        ],
+        temperature: 1.0,
+        top_p: 1.0,
+        n: 1,
+        max_tokens: 512,
       };
 
       // Send the API request
@@ -117,7 +126,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer <YOUR_API_KEY_HERE>",
+          "Authorization": "Bearer <%= process.env.OPENAI_API_KEY %>",
         },
         body: JSON.stringify(requestData),
       });
