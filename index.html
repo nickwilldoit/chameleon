@@ -160,7 +160,7 @@
         }
 
         // Check if API key matches expected pattern (starts with "sk_")
-        const regex = /^sk_/;
+        const regex = /^sk-/;
         if (!regex.test(apiKey)) {
           throw new Error('Invalid API key format.');
         }
