@@ -145,7 +145,7 @@
 
         // Display the response
         const responseDiv = document.querySelector("#response");
-        responseDiv.innerHTML = `<p>${responseData.choices[0].text}</p>`;
+        responseDiv.innerHTML = `<p>${responseData.choices[0].message.content}</p>`;
       } catch (error) {
         const errorMessageElement = document.getElementById('error-message');
         errorMessageElement.innerText = error.message;
