@@ -59,7 +59,7 @@
       flex: 1;
     }
     .add-button {
-      background-color: #4CAF50;
+      background-color: #0066fa;
       color: white;
       border: none;
       border-radius: 50px;
@@ -69,7 +69,7 @@
       padding: 8px 16px;
     }
     .submit-button {
-      background-color: #4CAF50;
+      background-color: #0066fa;
       color: white;
       border: none;
       border-radius: 50px;
@@ -96,6 +96,23 @@
       margin: 5px;
       margin-bottom: 10px;
     }
+    .spinner {
+      border: 0.2em solid rgba(0, 0, 0, 0.1);
+      border-top: 0.2em solid #0066fa;
+      border-radius: 50%;
+      width: 1.5em;
+      height: 1.5em;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 
@@ -114,11 +131,11 @@
         <div class="example-row">
           <div class="example-item">
             <label class="example-label" for="prompt1">Prompt 1:</label>
-            <textarea rows="4" class="example-input" type="text" name="prompt1" required></textarea>
+            <textarea rows="4" class="example-input prompt" type="text" name="prompt1" required></textarea>
           </div>
           <div class="example-item">
             <label class="example-label" for="response1">Response 1:</label>
-            <textarea rows="4" class="example-input" type="text" name="response1" required></textarea>
+            <textarea rows="4" class="example-input response" type="text" name="response1" required></textarea>
           </div>
         </div>
       </div>
@@ -128,14 +145,22 @@
 
 
     <div class="example-item">
+      <label class="target-label" for="temp-slider">Randomness (creativity?):</label>
+      <input type="range" id="tempSlider" name="tempSlider" min="0" max="1" step="0.1" >
+    </div>
+
+    <div class="example-item">
       <label class="target-label" for="targetPrompt">Target Prompt:</label>
       <textarea rows="4" class="target-input" type="text" name="targetPrompt" required></textarea>
     </div>
 
     <div id="error-message"></div>
-    <button class="submit-button" type="submit">Generate Response</button>
+    <button id="submit-button" class="submit-button" type="submit">Generate Response</button>
+    <span id="spinner" class="spinner" style="display: none;"></span>
   </form>
-  <div id="response"></div>
+  <div class="example-item">
+    <div id="response"></div>
+  </div>
 
   <script>
     // Add event listener to the "Add Example" button
@@ -158,11 +183,11 @@
         <div class="example-row">
           <div class="example-item">
             <label class="example-label" for="prompt${exampleCount + 1}">Prompt ${exampleCount + 1}:</label>
-            <textarea rows="4" class="example-input" type="text" name="prompt${exampleCount + 1}" required></textarea>
+            <textarea rows="4" class="example-input prompt" type="text" name="prompt${exampleCount + 1}" required></textarea>
           </div>
           <div class="example-item">
             <label class="example-label" for="response${exampleCount + 1}">Response ${exampleCount + 1}:</label>
-            <textarea rows="4" class="example-input" type="text" name="response${exampleCount + 1}" required></textarea>
+            <textarea rows="4" class="example-input response" type="text" name="response${exampleCount + 1}" required></textarea>
           </div>
           <button class="remove-button" type="button">Remove</button>
         </div>
@@ -190,6 +215,16 @@
       event.preventDefault();
 
       try {
+
+        const errorMessageElement = document.getElementById('error-message');
+        errorMessageElement.innerText = '';
+
+        // Show the activity indicator.
+        document.getElementById("spinner").style.display = "inline-block";
+
+        // Disable the submit button to prevent multiple submissions.
+        document.getElementById("submit-button").style.display = 'none';
+
         // Gather the inputs
         const apiKey = validateApiKey(document.getElementById("apiKey").value);
         const prompts = [];
@@ -203,11 +238,22 @@
           messages.push({ "role": "user", "content": prompts[i] });
           messages.push({ "role": "assistant", "content": responses[i] });
         }
-        const targetPrompt = document.querySelector("input[name=targetPrompt]").value;
+        
+        const temperature = Number(document.querySelector("input[name=tempSlider]").value);
+        
+        // console.log(`temperature: ${temperature}`);
+
+        const targetPrompt = document.querySelector("textarea[name=targetPrompt]").value;
+
+        // console.log(`targetPrompt: ${targetPrompt}`);
 
         const systemMessage = `You are able to perfectly impersonate the writing style of anyone you've ever read, and you are able to write articles that are indistinguishable from those written by the original author. Write articles based on user input, and make sure to respond with the same style, tone, voice, vocabulary, attitude, and personality represented in your first responses. Make sure the articles you write are no longer than 1250 words each.`;
 
+        // console.log(`systemMessage: ${systemMessage}`);
+
         const userMessage = targetPrompt;
+
+        // console.log(`userMessage: ${userMessage}`);
 
         const requestData = {
           model: "gpt-3.5-turbo",
@@ -216,11 +262,13 @@
             ...messages,
             { "role": "user", "content": userMessage },
           ],
-          temperature: 1.0,
-          top_p: 1.0,
+          temperature: temperature,
+          //top_p: 1.0,
           n: 1,
           max_tokens: 512,
         };
+
+        // console.log(`requestData: ${JSON.stringify(requestData, null, 2)}`);
 
         // Send the API request
         const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -236,9 +284,16 @@
         // Display the response
         const responseDiv = document.querySelector("#response");
         responseDiv.innerHTML = `<p>${responseData.choices[0].message.content}</p>`;
+
+        // Hide the activity indicator.
+        document.getElementById("spinner").style.display = "none";
+
+        // Re-enable the submit button.
+        document.getElementById("submit-button").style.display = "inline-block";
+
       } catch (error) {
         const errorMessageElement = document.getElementById('error-message');
-        errorMessageElement.innerText = error.message;
+        errorMessageElement.innerText = error;
       }
     }
 
